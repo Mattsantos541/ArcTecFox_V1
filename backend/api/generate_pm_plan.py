@@ -1,30 +1,14 @@
-import os
-import json
-import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Query
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
-from dotenv import load_dotenv
+from typing import Optional
+from datetime import datetime
+import json
 import openai
+import pandas as pd
 
-# ✅ Load environment variables
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-
-# ✅ Configure logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-# ✅ Validate API key
-if not api_key:
-    raise RuntimeError("🚨 ERROR: OPENAI_API_KEY is missing! Please check your .env file.")
-
-# ✅ Set the API key for OpenAI
-openai.api_key = api_key
-
-# ✅ Define FastAPI Router
 router = APIRouter()
 
-# ✅ Define Asset Data Model
 class AssetData(BaseModel):
     name: str
     model: str
@@ -33,71 +17,88 @@ class AssetData(BaseModel):
     hours: int
     cycles: int
     environment: str
+    email: Optional[str] = None
+    company: Optional[str] = None
 
-@router.post("/generate_pm_plan")
-async def generate_pm_plan(asset: AssetData):
-    """
-    Generates a Preventive Maintenance (PM) plan using OpenAI based on asset details.
-    """
-    try:
-        # ✅ Log received asset data
-        logger.info(f"📩 Received API request with asset data: {asset.dict()}")
+def format_numbered_instructions(instructions: list[str]) -> str:
+    return "\n".join([f"{i + 1}. {step.strip()}" for i, step in enumerate(instructions)])
 
-        # ✅ Format asset details safely
-        asset_data = {
-            "name": asset.name,
-            "model": asset.model,
-            "serial": asset.serial,
-            "category": asset.category,
-            "hours": asset.hours,
-            "cycles": asset.cycles,
-            "environment": asset.environment,
-        }
+def generate_prompt(data: AssetData) -> str:
+    return f"""
+You are an expert preventive maintenance planner. Based on the asset details below, generate a PM plan in JSON format.
 
-        # ✅ Construct prompt for OpenAI with updated instructions
-        prompt = f"""
-Create a detailed preventive maintenance plan for the following asset:
+Each task should include:
+- task_name
+- maintenance_trigger: a list such as ["calendar", "hours"] or just one
+- calendar_interval: e.g., "Every 3 months" (if applicable)
+- hours_interval: e.g., "Every 500 hours" (if applicable)
+- instructions: a list of short steps OR a pipe-separated string (these will be converted to a numbered list)
+- reason
+- safety_precautions
 
-{json.dumps(asset_data, indent=2)}
-
-Instructions:
-- Provide a structured JSON output with a key "maintenance_plan" that contains an array of maintenance task objects.
-- Each task object must include the following fields:
-  - "task_name": a string representing the name of the maintenance task.
-  - "maintenance_interval": a string that can be one of: "Daily", "Weekly", "Monthly", "Quarterly", "Annual".
-  - "instructions": an array of step-by-step instructions (each as a string).
-  - "reason": a string describing why the task is necessary.
-  - "safety_precautions": a string listing any safety precautions.
-  - "expected_duration": a string or number indicating the expected duration of the task.
-  - "expected_cost": a string or number indicating the approximate cost.
-  - "source_information": a string describing the source of the maintenance information.
-- Do not include any additional commentary or explanation. Output only valid JSON.
+Asset Details:
+- Name: {data.name}
+- Model: {data.model}
+- Serial: {data.serial}
+- Category: {data.category}
+- Operating Hours: {data.hours}
+- Cycles: {data.cycles}
+- Environment: {data.environment}
 """
 
-        # ✅ Call OpenAI API using the updated syntax
+@router.post("/generate_pm_plan")
+def generate_pm_plan(data: AssetData, format: str = Query("json", enum=["json", "excel"])):
+    print("📥 PM Plan Request")
+    print("Format:", format)
+    print("Asset Data:", data.dict())
+
+    try:
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "input": data.dict()
+        }
+        with open("pm_lite_logs.txt", "a") as f:
+            f.write(json.dumps(log_entry) + "\n")
+    except Exception as e:
+        print("⚠️ Log write failed:", e)
+
+    try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or "gpt-4-turbo" if you have access
-            messages=[{"role": "system", "content": prompt}],
-            temperature=0.7
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You generate preventive maintenance schedules."},
+                {"role": "user", "content": generate_prompt(data)}
+            ],
+            temperature=0.3
         )
 
-        # ✅ Extract AI-generated text
-        pm_plan_text = response.choices[0].message.content.strip()
+        plan_json = json.loads(response['choices'][0]['message']['content'])
 
-        # ✅ Validate JSON format
-        try:
-            pm_plan = json.loads(pm_plan_text)  # Ensure AI response is valid JSON
-        except json.JSONDecodeError:
-            logger.error("❌ AI response could not be parsed as JSON.")
-            raise HTTPException(status_code=500, detail="AI response could not be parsed as JSON.")
+        for task in plan_json:
+            task["asset_name"] = data.name
+            task["asset_model"] = data.model
+            task["hours_interval"] = task.get("hours_interval", "")
 
-        logger.info("✅ Successfully generated PM Plan")
-        return {"success": True, "data": pm_plan}
+            # Normalize instructions
+            instructions_raw = task.get("instructions")
+            if isinstance(instructions_raw, str) and "|" in instructions_raw:
+                steps = [s.strip() for s in instructions_raw.split("|") if s.strip()]
+                task["instructions"] = format_numbered_instructions(steps)
+            elif isinstance(instructions_raw, list):
+                task["instructions"] = format_numbered_instructions(instructions_raw)
 
-    except openai.OpenAIError as oe:
-        logger.error(f"❌ OpenAI API Error: {oe}")
-        raise HTTPException(status_code=500, detail=f"OpenAI API Error: {str(oe)}")
+        if format == "excel":
+            df = pd.DataFrame(plan_json)
+            output_path = "pm_plan_output.xlsx"
+            df.to_excel(output_path, index=False)
+            return FileResponse(
+                output_path,
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                filename="PM_Plan.xlsx"
+            )
+        else:
+            return JSONResponse(content={"pm_plan": plan_json})
 
     except Exception as e:
-        logger.error(f"❌ Internal Server Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+        print("❌ Error generating plan:", e)
+        return {"error": str(e), "pm_plan": []}
