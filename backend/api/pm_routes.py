@@ -5,11 +5,13 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
 from openai import OpenAI  # OpenAI v1 client
+from api.generate_pm_plan import router as pm_plan_router
 from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from .env file
 
 router = APIRouter()
+router.include_router(pm_plan_router)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class AssetData(BaseModel):
