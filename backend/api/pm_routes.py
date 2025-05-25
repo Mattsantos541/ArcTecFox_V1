@@ -5,6 +5,9 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
 from openai import OpenAI  # OpenAI v1 client
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 router = APIRouter()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
