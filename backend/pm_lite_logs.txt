@@ -1,0 +1,2 @@
+{"timestamp": "2025-05-25T01:34:12.072599", "input": {"name": "Hydraulic Pump", "model": "Xj", "serial": "123345`", "category": "pump", "hours": 500, "cycles": 200, "environment": "outdoor", "email": null, "company": null}}
+{"timestamp": "2025-05-25T01:34:21.147063", "input": {"name": "Hydraulic Pump", "model": "Xj", "serial": "123345`", "category": "pump", "hours": 500, "cycles": 200, "environment": "outdoor", "email": null, "company": null}}
