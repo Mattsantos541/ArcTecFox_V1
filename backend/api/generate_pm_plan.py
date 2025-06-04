@@ -5,12 +5,12 @@ from typing import Optional
 from datetime import datetime, date
 import json
 import pandas as pd
-from openai import OpenAI
+import openai
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 router = APIRouter()
 
@@ -23,8 +23,6 @@ class AssetData(BaseModel):
     cycles: int
     environment: str
     date_of_plan_start: Optional[date] = None
-    email: Optional[str] = None
-    company: Optional[str] = None
 
 def format_numbered_instructions(instructions: list[str]) -> str:
     return "\n".join([f"{i + 1}. {step.strip()}" for i, step in enumerate(instructions)])
@@ -93,7 +91,7 @@ def generate_pm_plan(data: AssetData, format: str = Query("json", enum=["json", 
         print("⚠️ Log write failed:", e)
 
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are an expert in preventive maintenance planning."},
