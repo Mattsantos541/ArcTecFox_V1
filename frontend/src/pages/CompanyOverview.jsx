@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { fetchAssets, fetchMetrics } from "../api";
+import {
+  fetchAssets,
+  fetchMetrics,
+  getCurrentUser,
+  getUserCompanyId,
+} from "../api";
 
 function CompanyOverview() {
   const [assets, setAssets] = useState([]);
@@ -17,15 +22,29 @@ function CompanyOverview() {
         const assetData = await fetchAssets().catch(() => []);
         setAssets(assetData);
 
-        // Fetch metrics, fallback to asset count if needed
-        const metricsData = await fetchMetrics().catch(() => ({
-          totalAssets: assetData?.length ?? 0,
-          activePMPlans: 0, // Placeholder value
-          nextPMTask: "N/A",
-          locations: assetData?.length
-            ? [...new Set(assetData.map(a => a.location || "Unknown"))]
-            : [],
-        }));
+        // Determine company ID from current user
+        const user = await getCurrentUser();
+        const companyId = user ? await getUserCompanyId(user.id) : null;
+
+        // Fetch metrics scoped to the company, fallback to asset count if needed
+        const metricsData =
+          companyId !== null
+            ? await fetchMetrics(companyId).catch(() => ({
+                totalAssets: assetData?.length ?? 0,
+                activePMPlans: 0, // Placeholder value
+                nextPMTask: "N/A",
+                locations: assetData?.length
+                  ? [...new Set(assetData.map((a) => a.location || "Unknown"))]
+                  : [],
+              }))
+            : {
+                totalAssets: assetData?.length ?? 0,
+                activePMPlans: 0,
+                nextPMTask: "N/A",
+                locations: assetData?.length
+                  ? [...new Set(assetData.map((a) => a.location || "Unknown"))]
+                  : [],
+              };
 
         setMetrics(metricsData);
       } catch (error) {
