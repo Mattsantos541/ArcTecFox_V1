@@ -5,6 +5,10 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
+// Helper to scope queries by company_id
+export const withCompanyScope = (table, companyId) =>
+  supabase.from(table).eq("company_id", companyId);
+
 // ✅ Fetch Assets
 export const fetchAssets = async () => {
   try {
@@ -62,10 +66,28 @@ export async function getCurrentUser() {
   }
 }
 
-// ✅ Fetch Metrics
-export const fetchMetrics = async () => {
+// Retrieve company_id for a user
+export async function getUserCompanyId(userId) {
   try {
-    const { data, error } = await supabase.from("metrics").select("*");
+    const { data, error } = await supabase
+      .from("users")
+      .select("company_id")
+      .eq("id", userId)
+      .single();
+    if (error) throw error;
+    return data.company_id;
+  } catch (error) {
+    console.error("❌ Error fetching user company:", error.message);
+    throw error;
+  }
+}
+
+// ✅ Fetch Metrics
+export const fetchMetrics = async (companyId) => {
+  try {
+    const { data, error } = await withCompanyScope("metrics", companyId).select(
+      "*"
+    );
     if (error) throw error;
     return data;
   } catch (error) {
