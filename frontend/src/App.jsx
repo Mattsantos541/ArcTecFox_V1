@@ -13,12 +13,14 @@ import WorkOrders from "./pages/WorkOrders";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import { AuthProvider } from "./hooks/useAuth";
+import { NotifierProvider } from "./hooks/useNotifier";
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
+        <NotifierProvider>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/complete-profile" element={<CompleteProfile />} />
           <Route element={<MainLayout />}>
@@ -29,7 +31,8 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
-        </Routes>
+          </Routes>
+        </NotifierProvider>
       </AuthProvider>
     </Router>
   );
