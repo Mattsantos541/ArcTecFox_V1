@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { saveAs } from "file-saver";
+import { useNotifier } from "../hooks/useNotifier";
 
 // UI Components
 function Input({ label, name, value, onChange, placeholder, type = "text" }) {
@@ -56,7 +57,7 @@ export default function PMPlanner() {
 
   const [pmPlan, setPmPlan] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { notifyError } = useNotifier();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -65,7 +66,6 @@ export default function PMPlanner() {
 
   const generatePMPlan = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await axios.post(
         `${API_BASE_URL}/generate_pm_plan`,
@@ -78,7 +78,7 @@ export default function PMPlanner() {
       }
     } catch (err) {
       console.error("❌ API error:", err);
-      setError("Something went wrong. Please check your inputs or try again.");
+      notifyError("Something went wrong. Please check your inputs or try again.");
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export default function PMPlanner() {
       saveAs(blob, `PM_Plan_${assetData.name || "Asset"}.xlsx`);
     } catch (err) {
       console.error("❌ Excel download failed:", err);
-      setError("Failed to export Excel. Please try again.");
+      notifyError("Failed to export Excel. Please try again.");
     }
   };
 
@@ -160,7 +160,6 @@ export default function PMPlanner() {
           {loading ? "Generating..." : "Generate Plan"}
         </Button>
 
-        {error && <p className="text-red-600 mt-3">{error}</p>}
       </Card>
 
       <Card title="Maintenance Plan Results">
