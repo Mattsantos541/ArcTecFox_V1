@@ -1,24 +1,23 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signIn, signUp, isProfileComplete } from "../api";
+import { useNotifier } from "../hooks/useNotifier";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [confirmationMessage, setConfirmationMessage] = useState("");
+  const { notifySuccess, notifyError } = useNotifier();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     if (isSignUp && password !== confirmPassword) {
-      setError("Passwords do not match!");
+      notifyError("Passwords do not match!");
       setLoading(false);
       return;
     }
@@ -26,7 +25,7 @@ function Login() {
     try {
       if (isSignUp) {
         await signUp(email, password);
-        setConfirmationMessage("✅ Check your email to confirm your account!");
+        notifySuccess("Check your email to confirm your account!");
       } else {
         try {
           const user = await signIn(email, password);
@@ -37,12 +36,12 @@ function Login() {
           navigate(profileCompleted ? "/company-overview" : "/complete-profile");
         } catch (err) {
           console.error("Sign in error:", err);
-          setError(err.message);
+          notifyError(err.message);
         }
       }
     } catch (err) {
-      setError(err.message);
       console.error("❌ Authentication Error:", err.message);
+      notifyError(err.message);
     } finally {
       setLoading(false);
     }
@@ -54,8 +53,6 @@ function Login() {
         <h2 className="text-center text-3xl font-bold text-gray-900">
           {isSignUp ? "Create an Account" : "Sign In"}
         </h2>
-        {confirmationMessage && <p className="text-green-500 text-center">{confirmationMessage}</p>}
-        {error && <p className="text-red-500 text-center">{error}</p>}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <input type="email" required className="block w-full p-3 border rounded-md"

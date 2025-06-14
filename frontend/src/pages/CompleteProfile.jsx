@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { completeUserProfile, getCurrentUser, isProfileComplete } from "../api"; // ✅ Ensure correct import path
+import { completeUserProfile, getCurrentUser, isProfileComplete } from "../api"; 
+import { useNotifier } from "../hooks/useNotifier";
 
 function CompleteProfile() {
   const [formData, setFormData] = useState({
@@ -13,7 +14,7 @@ function CompleteProfile() {
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { notifySuccess, notifyError } = useNotifier();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,7 +22,7 @@ function CompleteProfile() {
       try {
         const currentUser = await getCurrentUser();
         if (!currentUser || !currentUser.id) {
-          setError("User session is missing. Please log in again.");
+          notifyError("User session is missing. Please log in again.");
           setLoading(false);
           return;
         }
@@ -29,7 +30,7 @@ function CompleteProfile() {
         setLoading(false);
       } catch (err) {
         console.error("❌ Get user error:", err);
-        setError("Authentication error. Please log in again.");
+        notifyError("Authentication error. Please log in again.");
         setLoading(false);
       }
     };
@@ -39,20 +40,19 @@ function CompleteProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
 
     if (!user || !user.id) {
-      setError("User session is missing. Please log in again.");
+      notifyError("User session is missing. Please log in again.");
       return;
     }
 
     try {
       await completeUserProfile({ ...formData, id: user.id, email: user.email });
-      alert("✅ Profile updated successfully!");
-      navigate("/company-overview"); // ✅ Redirect to company overview
+      notifySuccess("Profile updated successfully!");
+      navigate("/company-overview"); 
     } catch (err) {
       console.error("❌ Profile completion error:", err);
-      setError(err.message || "Failed to complete profile. Please try again.");
+      notifyError(err.message || "Failed to complete profile. Please try again.");
     }
   };
 
@@ -61,7 +61,6 @@ function CompleteProfile() {
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6 bg-gray-100 min-h-screen">
       <h2 className="text-3xl font-bold text-gray-900">Complete Your Profile</h2>
-      {error && <p className="text-red-600">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow-lg">
         <input type="text" name="full_name" placeholder="Full Name" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} className="w-full border p-2 rounded" required />
         <input type="text" name="role" placeholder="Role" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full border p-2 rounded" required />
