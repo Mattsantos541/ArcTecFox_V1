@@ -100,7 +100,7 @@ function CompanyOverview() {
   );
 }
 
-// ✅ Small reusable metric card component
+
 const MetricCard = ({ title, value }) => (
   <div className="rounded-lg bg-white p-6 shadow-md">
     <h3 className="text-sm font-medium text-gray-500">{title}</h3>

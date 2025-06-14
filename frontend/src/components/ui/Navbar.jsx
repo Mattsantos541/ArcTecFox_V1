@@ -1,14 +1,14 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "../api"; // ✅ Ensure correct import
+import { signOut } from "../api"; 
 
 const Navbar = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await signOut(); // ✅ Call the updated function
-      navigate("/login"); // ✅ Redirect to login page after logout
+      await signOut(); 
+      navigate("/login"); 
     } catch (error) {
       console.error("❌ Logout failed:", error);
     }

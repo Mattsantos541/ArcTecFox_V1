@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "echo \"No tests specified\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^5.4.14"
+    "vite": "^5.4.14",
+    "daisyui": "^4.10.0"
   }
 }

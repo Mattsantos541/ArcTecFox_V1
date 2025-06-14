@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "echo \"No tests specified\""
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwindcss": "^3.4.1",
+    "daisyui": "^4.10.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.0"
   },
